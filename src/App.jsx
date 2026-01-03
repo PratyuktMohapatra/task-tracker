@@ -31,10 +31,10 @@ export default function App() {
     noSugar: false,
     protein: false,
     study: false,
+    coldShower: false,
   });
   
   const [sideQuests, setSideQuests] = useState({
-    coldShower: false,
     skincare: false,
     noSwiggy: false,
     noNailBiting: false,
@@ -42,6 +42,14 @@ export default function App() {
   });
 
   const [loading, setLoading] = useState(true);
+
+  // Define Side Quest List
+  const sideQuestList = [
+    { id: 'skincare', label: 'Moisturize & Sunscreen', icon: Sun },
+    { id: 'noSwiggy', label: 'No Swiggy', icon: Ban },
+    { id: 'noNailBiting', label: 'No Nail Biting', icon: Smile },
+    { id: 'reading', label: 'Read 5-10 Pages', icon: BookOpen },
+  ];
 
   // --- LOAD DATA (Local Storage) ---
   useEffect(() => {
@@ -51,18 +59,16 @@ export default function App() {
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
-        // Check if it's a new day
         if (parsed.date === today) {
           setWaterCount(parsed.waterCount || 0);
           setSteps(parsed.steps || 0);
           setDailyHabits(parsed.dailyHabits || {
-             creatine: false, noSugar: false, protein: false, study: false
+             creatine: false, noSugar: false, protein: false, study: false, coldShower: false
           });
           setSideQuests(parsed.sideQuests || {
-             coldShower: false, skincare: false, noSwiggy: false, noNailBiting: false, reading: false
+             skincare: false, noSwiggy: false, noNailBiting: false, reading: false
           });
         } else {
-          // It's a new day, reset automatically
           resetDaily(); 
         }
       } catch (e) {
@@ -103,9 +109,9 @@ export default function App() {
       noSugar: false,
       protein: false,
       study: false,
+      coldShower: false,
     });
     setSideQuests({
-      coldShower: false,
       skincare: false,
       noSwiggy: false,
       noNailBiting: false,
@@ -114,14 +120,20 @@ export default function App() {
   };
 
   // --- Progress Calculation ---
+  
+  // 1. Core Habits (Affects Top Bar)
   const habitsCount = Object.values(dailyHabits).filter(Boolean).length;
-  const sideQuestsCount = Object.values(sideQuests).filter(Boolean).length;
   const waterComplete = waterCount >= 4 ? 1 : 0;
   const stepsComplete = steps >= 10000 ? 1 : 0;
   
-  const completedGoals = habitsCount + waterComplete + stepsComplete + sideQuestsCount;
-  const baseDenominator = 6; 
-  const progressPercentage = Math.round((completedGoals / baseDenominator) * 100);
+  const mainCompletedGoals = habitsCount + waterComplete + stepsComplete;
+  const mainDenominator = 7; 
+  const progressPercentage = Math.round((mainCompletedGoals / mainDenominator) * 100);
+
+  // 2. Side Quests (Affects Red Bar Only)
+  const sideQuestsCount = sideQuestList.filter(quest => sideQuests[quest.id]).length;
+  const sideQuestTotal = sideQuestList.length;
+  const sideQuestPercentage = Math.round((sideQuestsCount / sideQuestTotal) * 100);
 
   if (loading) return null;
 
@@ -133,7 +145,7 @@ export default function App() {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 space-y-4 md:space-y-0">
           <div>
             <h1 className="text-3xl md:text-6xl font-bold tracking-tighter text-white mb-2 leading-tight">
-              Pratyukt's <span className="text-emerald-500">lock in</span>
+              Locked <span className="text-emerald-500">In</span>
             </h1>
             <p className="text-neutral-400 text-xs md:text-base max-w-md leading-relaxed">
               "Add 2 years to your actual age. Live with that maturity."
@@ -153,16 +165,31 @@ export default function App() {
           </div>
         </div>
 
-        {/* Progress Bar */}
-        <div className="w-full bg-neutral-900 rounded-full h-6 md:h-8 border border-neutral-800 relative overflow-hidden">
-          <div
-            className={`h-full transition-all duration-700 ease-out flex items-center justify-end px-2 ${progressPercentage > 100 ? 'bg-gradient-to-r from-emerald-600 to-red-600' : 'bg-emerald-600'}`}
-            style={{ width: `${Math.min(progressPercentage, 100)}%` }}
-          />
-          <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center pointer-events-none">
-            <span className={`text-[10px] md:text-sm font-bold drop-shadow-md ${progressPercentage > 100 ? 'text-red-100 animate-pulse' : 'text-white'}`}>
-              {progressPercentage}% {progressPercentage > 100 && ' // OVERACHIEVER'}
-            </span>
+        <div className="space-y-2">
+          {/* Global Progress Bar (Main Habits Only) */}
+          <div className="w-full bg-neutral-900 rounded-full h-6 md:h-8 border border-neutral-800 relative overflow-hidden">
+            <div
+              className={`h-full transition-all duration-700 ease-out flex items-center justify-end px-2 bg-emerald-600`}
+              style={{ width: `${Math.min(progressPercentage, 100)}%` }}
+            />
+            <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center pointer-events-none">
+              <span className={`text-[10px] md:text-sm font-bold drop-shadow-md text-white uppercase tracking-widest`}>
+                Main Protocol: {progressPercentage}%
+              </span>
+            </div>
+          </div>
+
+          {/* MOVED: Side Quest Bar (Under Main Bar) */}
+          <div className="w-full bg-neutral-900 rounded-full h-4 md:h-5 border border-red-900/30 relative overflow-hidden">
+            <div 
+              className="h-full bg-red-600 transition-all duration-500 ease-out flex items-center justify-end px-2"
+              style={{ width: `${sideQuestPercentage}%` }}
+            />
+            <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center pointer-events-none">
+              <span className="text-[9px] md:text-xs font-bold drop-shadow-md text-red-100 uppercase tracking-widest">
+                Side Quests: {sideQuestsCount}/{sideQuestTotal}
+              </span>
+            </div>
           </div>
         </div>
       </header>
@@ -223,6 +250,7 @@ export default function App() {
             <h4 className="text-[10px] md:text-xs font-mono uppercase text-neutral-500 mb-4">Daily Non-Negotiables</h4>
             <div className="space-y-2 md:space-y-3">
               {[
+                { id: 'coldShower', label: 'Cold Shower', icon: Droplets },
                 { id: 'creatine', label: 'Take Creatine', icon: Flame },
                 { id: 'protein', label: 'Protein Intake', icon: Utensils },
                 { id: 'noSugar', label: 'Zero Added Sugar', icon: Ban },
@@ -247,19 +275,16 @@ export default function App() {
             </div>
           </div>
 
-          {/* Side Quest Rewards */}
+          {/* Side Quest Rewards (Bar Removed from here) */}
           <div className="bg-neutral-900/50 border border-red-900/30 p-4 md:p-6 rounded-2xl relative overflow-hidden">
-            <h4 className="text-[10px] md:text-xs font-mono uppercase text-red-500 mb-4 flex items-center">
-              <Zap className="w-3 h-3 mr-1" /> Side Quest Rewards
-            </h4>
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-[10px] md:text-xs font-mono uppercase text-red-500 flex items-center">
+                <Zap className="w-3 h-3 mr-1" /> Side Quest Rewards
+              </h4>
+            </div>
+
             <div className="space-y-2 md:space-y-3">
-              {[
-                { id: 'coldShower', label: 'Cold Shower', icon: Droplets },
-                { id: 'skincare', label: 'Moisturize & Sunscreen', icon: Sun },
-                { id: 'noSwiggy', label: 'No Swiggy', icon: Ban },
-                { id: 'noNailBiting', label: 'No Nail Biting', icon: Smile },
-                { id: 'reading', label: 'Read 5-10 Pages', icon: BookOpen },
-              ].map((item) => (
+              {sideQuestList.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => toggleSideQuest(item.id)}
